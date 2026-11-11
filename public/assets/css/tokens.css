@@ -1,0 +1,176 @@
+/* =====================================================================
+   ConciliaRH — Tokens de diseño (docs/DESIGN_SYSTEM.md §5)
+   Única fuente de valores visuales: los demás archivos sólo usan var(--…).
+   Colores base de la paleta institucional:
+     VINO   #691C32  RGB 105,28,50   Pantone 7421 C
+     DORADO #BC955C  RGB 188,149,92  Pantone 465 C
+     ARENA  #ECD798  RGB 236,215,152 Pantone 7402 C
+   Contrastes WCAG 2.1 medidos (texto normal ≥ 4.5:1):
+     vino sobre blanco                 11.58:1
+     texto dorado (--gold-700)          5.54:1 sobre blanco
+     dorado oficial sobre blanco        2.77:1  → sólo filetes/bordes/iconos grandes, nunca texto
+     arena sobre vino                   8.13:1  → texto destacado en la navegación
+     texto secundario (--gray-600)      6.49:1 sobre blanco
+     semánticos (texto 700 sobre 100)  ≥ 6.18:1
+   ===================================================================== */
+
+@font-face { font-family: "Montserrat"; font-style: normal; font-weight: 400; font-display: swap; src: url("../vendor/montserrat/montserrat-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Montserrat"; font-style: normal; font-weight: 500; font-display: swap; src: url("../vendor/montserrat/montserrat-latin-500-normal.woff2") format("woff2"); }
+@font-face { font-family: "Montserrat"; font-style: normal; font-weight: 600; font-display: swap; src: url("../vendor/montserrat/montserrat-latin-600-normal.woff2") format("woff2"); }
+@font-face { font-family: "Montserrat"; font-style: normal; font-weight: 700; font-display: swap; src: url("../vendor/montserrat/montserrat-latin-700-normal.woff2") format("woff2"); }
+
+:root {
+  /* --- Identidad oficial ------------------------------------------- */
+  --brand-wine: #691C32;
+  --brand-gold: #BC955C;
+  --brand-sand: #ECD798;
+
+  /* --- Escalas derivadas -------------------------------------------- */
+  --wine-950: #2e0c16;
+  --wine-900: #41111f;
+  --wine-800: #521628;
+  --wine-700: #691C32;   /* = oficial */
+  --wine-600: #7f2640;
+  --wine-500: #983452;
+  --wine-200: #e7c3cd;
+  --wine-100: #f5e6ea;
+  --wine-50:  #fbf4f6;
+
+  --gold-800: #6e5227;
+  --gold-700: #83632f;   /* texto dorado accesible */
+  --gold-600: #a07c44;
+  --gold-500: #BC955C;   /* = oficial */
+  --gold-300: #d9bf95;
+  --gold-100: #f4ead9;
+
+  --sand-500: #ECD798;   /* = oficial */
+  --sand-300: #f4e7c1;
+  --sand-100: #fbf6e6;
+  --sand-50:  #fdfbf3;
+
+  /* Neutros: grises ligeramente cálidos (no crema) */
+  --gray-900: #1f1b1c;
+  --gray-800: #332d2f;
+  --gray-700: #4b4446;
+  --gray-600: #645c5e;
+  --gray-500: #837a7c;
+  --gray-400: #a8a0a2;
+  --gray-300: #cfc8c9;
+  --gray-200: #e6e1e1;
+  --gray-100: #f1eeed;
+  --gray-50:  #f7f6f5;
+  --white: #ffffff;
+
+  /* Semánticos: sólo estados, siempre con icono + texto */
+  --success-700: #17613f;  --success-600: #1b7049;  --success-500: #22875a;  --success-100: #dcefe4;  --success-200: #b9dcc7;
+  --warning-800: #7a4f00;  --warning-700: #8c5c00;  --warning-500: #c98a06;  --warning-100: #fff1cf;  --warning-200: #f0d68f;
+  --danger-700:  #a3201a;  --danger-600:  #bb2a22;  --danger-500:  #d23a2f;  --danger-100:  #fbe3e1;  --danger-200:  #f2bcb7;
+  --info-700:    #1d5277;  --info-500:    #2f78ad;  --info-100:    #deebf5;  --info-200:    #b7d2e8;
+
+  /* --- Roles de interfaz (los componentes usan ESTOS) ---------------- */
+  --color-bg: var(--gray-50);
+  --color-surface: var(--white);
+  --color-surface-sunken: var(--gray-100);
+  --color-surface-accent: var(--sand-50);
+  --color-text: var(--gray-900);
+  --color-text-muted: var(--gray-600);
+  --color-border: var(--gray-200);
+  --color-border-strong: var(--gray-300);
+  --color-primary: var(--wine-700);
+  --color-primary-hover: var(--wine-600);
+  --color-primary-active: var(--wine-800);
+  --color-accent: var(--gold-500);
+  --color-accent-text: var(--gold-700);
+  --color-rule: var(--gold-500);          /* filete institucional */
+  --color-focus: var(--gold-500);
+  --color-disabled-bg: var(--gray-100);
+  --color-disabled-text: var(--gray-500);
+  --color-nav-bg: var(--wine-800);
+  --color-nav-text: rgba(255, 255, 255, .86);
+  --color-nav-muted: rgba(236, 215, 152, .78);
+  --color-row-attention: var(--sand-50);   /* fila con incidencia */
+  --color-money-under: var(--danger-700);  /* falta dinero */
+  --color-money-over: var(--warning-800);  /* sobra dinero */
+  --color-money-even: var(--success-700);
+
+  /* --- Tipografía --------------------------------------------------- */
+  --font-sans: "Montserrat", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-num: "tnum" 1, "lnum" 1;          /* cifras tabulares alineadas */
+  /* Escala modular 1.2 sobre 15px (html) */
+  --text-xs: .8rem;      /* 12px — notas, pies de tabla */
+  --text-sm: .8667rem;   /* 13px — celdas densas, etiquetas */
+  --text-base: 1rem;     /* 15px — cuerpo */
+  --text-md: 1.1333rem;  /* 17px — títulos de tarjeta */
+  --text-lg: 1.3333rem;  /* 20px — títulos de sección */
+  --text-xl: 1.6rem;     /* 24px — título de página */
+  --text-2xl: 2rem;      /* 30px — cifra principal */
+  --leading-tight: 1.2;
+  --leading: 1.5;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  /* --- Espaciado (base 4px) ----------------------------------------- */
+  --space-1: .25rem;  --space-2: .5rem;  --space-3: .75rem;  --space-4: 1rem;
+  --space-5: 1.25rem; --space-6: 1.5rem; --space-8: 2rem;    --space-10: 2.5rem;
+
+  /* --- Forma: jerarquía de radios (control < contenedor < diálogo) -- */
+  --radius-xs: 3px;     /* marcas, barras */
+  --radius-sm: 6px;     /* controles: botones, campos */
+  --radius: 8px;        /* contenedores: tarjetas, tablas */
+  --radius-lg: 12px;    /* diálogos y login */
+  --radius-pill: 999px; /* sólo distintivos de estado */
+  --border-width: 1px;
+  --rule-width: 3px;
+
+  /* --- Profundidad: bordes en la página, sombra sólo en capas flotantes */
+  --shadow-sm: 0 1px 2px rgba(46, 12, 22, .06);
+  --shadow: 0 6px 18px -8px rgba(46, 12, 22, .22);
+  --shadow-lg: 0 18px 40px -18px rgba(46, 12, 22, .45);
+  --focus-ring: 0 0 0 3px rgba(188, 149, 92, .6);
+
+  /* --- Alturas ------------------------------------------------------ */
+  --control-h-sm: 32px;
+  --control-h: 40px;
+  --control-h-lg: 46px;
+  --row-h: 44px;
+  --sidebar-width: 256px;
+  --sidebar-rail-width: 72px;
+  --header-height: 60px;
+
+  /* --- Movimiento ---------------------------------------------------- */
+  --ease: cubic-bezier(.2, .7, .2, 1);
+  --dur-fast: .12s;
+  --dur: .2s;
+  --dur-slow: .3s;
+
+  /* --- Capas (z-index) ---------------------------------------------- */
+  --z-sticky: 2;
+  --z-topbar: 1020;
+  --z-backdrop: 1025;
+  --z-sidebar: 1030;
+  --z-modal: 1055;
+  --z-toast: 1090;
+  --z-skip: 2000;
+
+  /* --- Breakpoints (referencia; en @media se escriben literales) ----
+     sm 576 · md 768 · lg 992 · xl 1200 · xxl 1400 (= Bootstrap 5)
+     Validación visual: 390 · 768 · 1024 · 1366 · 1440 · 1920 */
+
+  /* --- Integración con Bootstrap 5.3 -------------------------------- */
+  --bs-body-font-family: var(--font-sans);
+  --bs-body-color: var(--color-text);
+  --bs-body-bg: var(--color-bg);
+  --bs-primary: var(--wine-700);
+  --bs-primary-rgb: 105, 28, 50;
+  --bs-link-color: var(--wine-700);
+  --bs-link-color-rgb: 105, 28, 50;
+  --bs-link-hover-color: var(--wine-600);
+  --bs-link-hover-color-rgb: 127, 38, 64;
+  --bs-border-color: var(--color-border);
+  --bs-border-radius: var(--radius-sm);
+  --bs-secondary-color: var(--color-text-muted);
+  --bs-focus-ring-color: rgba(188, 149, 92, .6);
+}

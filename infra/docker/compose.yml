@@ -1,0 +1,148 @@
+# ConciliaRH — entorno de DESARROLLO LOCAL.
+# Uso (desde la raíz del proyecto):  make up   |   docker compose --env-file .env -f infra/docker/compose.yml up -d
+# Producción NO usa este archivo.
+#
+# Mínimo privilegio también en desarrollo:
+#   * web     → sólo credenciales del rol conciliarh_web y llaves de la app (no ve .env).
+#   * worker  → sólo credenciales del rol conciliarh_worker y storage/.
+#   * tools (perfil "tools", bajo demanda) → credenciales del propietario del
+#     esquema (NOSUPERUSER) para migraciones, alta de GOD y pruebas.
+#   * db      → superusuario `postgres` sólo dentro del contenedor de BD.
+name: conciliarh
+
+x-app-env: &app-env
+  APP_ENV: ${APP_ENV:-development}
+  APP_DEBUG: ${APP_DEBUG:-true}
+  APP_URL: ${APP_URL:-http://localhost:8120}
+  APP_TIMEZONE: ${APP_TIMEZONE:-America/Mexico_City}
+  APP_KEY: ${APP_KEY:?Ejecute make init}
+  # La web NO recibe la llave HMAC de cuentas (no la usa desde la FASE 7); sólo el worker y las CLI (tools)
+  ACCOUNT_ENC_KEY_ID: ${ACCOUNT_ENC_KEY_ID:-k1}
+  ACCOUNT_ENC_KEYS: ${ACCOUNT_ENC_KEYS:?Ejecute make init}
+  # Reportes con datos de personas cifrados en reposo (web descarga, scheduler genera); llave distinta de las de cuentas
+  REPORT_ENC_KEY_ID: ${REPORT_ENC_KEY_ID:-r1}
+  REPORT_ENC_KEYS: ${REPORT_ENC_KEYS:?Agregue REPORT_ENC_KEYS a .env (ver docs/REPORT_ENCRYPTION.md)}
+  DB_HOST: db
+  DB_PORT: "5432"
+  DB_DATABASE: ${DB_DATABASE:-conciliarh}
+  DB_TEST_DATABASE: ${DB_TEST_DATABASE:-conciliarh_test}
+  DB_USERNAME: conciliarh_web
+  DB_PASSWORD: ${DB_PASSWORD:?Ejecute make init}
+  SESSION_SECURE: ${SESSION_SECURE:-false}
+  MAX_UPLOAD_SIZE: ${MAX_UPLOAD_SIZE:-26214400}
+  WORKER_HEARTBEAT_TIMEOUT: ${WORKER_HEARTBEAT_TIMEOUT:-120}
+
+x-worker-env: &worker-env
+  APP_ENV: ${APP_ENV:-development}
+  DB_HOST: db
+  DB_PORT: "5432"
+  DB_DATABASE: ${DB_DATABASE:-conciliarh}
+  DB_TEST_DATABASE: ${DB_TEST_DATABASE:-conciliarh_test}
+  WORKER_DB_USERNAME: conciliarh_worker
+  WORKER_DB_PASSWORD: ${WORKER_DB_PASSWORD:?Ejecute make init}
+  ACCOUNT_HMAC_KEY: ${ACCOUNT_HMAC_KEY:?Ejecute make init}
+  # Anillo HMAC opcional para rotaciones (docs/HMAC_ROTATION.md); vacío = ACCOUNT_HMAC_KEY es «h1»
+  ACCOUNT_HMAC_KEYS: ${ACCOUNT_HMAC_KEYS:-}
+  ACCOUNT_ENC_KEY_ID: ${ACCOUNT_ENC_KEY_ID:-k1}
+  ACCOUNT_ENC_KEYS: ${ACCOUNT_ENC_KEYS:?Ejecute make init}
+  WORKER_HEARTBEAT_TIMEOUT: ${WORKER_HEARTBEAT_TIMEOUT:-120}
+  WORKER_POLL_INTERVAL: ${WORKER_POLL_INTERVAL:-5}
+  APP_TIMEZONE: ${APP_TIMEZONE:-America/Mexico_City}
+
+x-owner-env: &owner-env
+  DB_MIGRATE_USERNAME: conciliarh_owner
+  DB_MIGRATE_PASSWORD: ${DB_MIGRATE_PASSWORD:?Ejecute make init}
+
+x-php-build: &php-build
+  context: ../..
+  dockerfile: infra/docker/php/Dockerfile
+  args:
+    UID: ${DEV_UID:-1000}
+    GID: ${DEV_GID:-1000}
+
+x-php-volumes: &php-volumes
+  - ../..:/var/www/html
+  # El .env del host (que contiene TODAS las credenciales de desarrollo) queda oculto:
+  # los contenedores reciben sólo las variables que necesitan.
+  - /dev/null:/var/www/html/.env:ro
+
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_SUPERUSER_PASSWORD:?Ejecute make init}
+      POSTGRES_DB: postgres
+      TZ: America/Mexico_City
+      PGTZ: America/Mexico_City
+      CONCILIARH_OWNER_PASSWORD: ${DB_MIGRATE_PASSWORD}
+      CONCILIARH_WEB_PASSWORD: ${DB_PASSWORD}
+      CONCILIARH_WORKER_PASSWORD: ${WORKER_DB_PASSWORD}
+      CONCILIARH_SCHEDULER_PASSWORD: ${SCHEDULER_DB_PASSWORD:-}
+      CONCILIARH_DB: ${DB_DATABASE:-conciliarh}
+      CONCILIARH_TEST_DB: ${DB_TEST_DATABASE:-conciliarh_test}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:${DEV_DB_PORT:-55432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d ${DB_DATABASE:-conciliarh}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  web:
+    build: *php-build
+    image: conciliarh-web
+    environment: *app-env
+    volumes: *php-volumes
+    ports:
+      - "127.0.0.1:${DEV_WEB_PORT:-8120}:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  worker:
+    mem_limit: 1536m
+    build: *php-build
+    image: conciliarh-web
+    user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
+    environment: *worker-env
+    volumes:
+      - ../..:/var/www/html:ro
+      - /dev/null:/var/www/html/.env:ro
+      - ../../storage:/var/www/html/storage
+      - ../../storage/imports:/var/www/html/storage/imports:ro
+    working_dir: /var/www/html
+    entrypoint: []
+    command: ["php", "bin/worker.php", "worker"]
+    stop_signal: SIGTERM
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # Herramientas bajo demanda (make migrate | god | test-php): propietario del esquema.
+  tools:
+    profiles: ["tools"]
+    image: conciliarh-web
+    # Mismo UID/GID que el desarrollador: los archivos que genere (vendor, credenciales dev) le pertenecen
+    user: "${DEV_UID:-1000}:${DEV_GID:-1000}"
+    environment:
+      <<: [*app-env, *owner-env]
+      WORKER_DB_USERNAME: conciliarh_worker
+      WORKER_DB_PASSWORD: ${WORKER_DB_PASSWORD}
+      ACCOUNT_HMAC_KEY: ${ACCOUNT_HMAC_KEY:?Ejecute make init}
+      ACCOUNT_HMAC_KEYS: ${ACCOUNT_HMAC_KEYS:-}
+      SCHEDULER_DB_USERNAME: conciliarh_scheduler
+      SCHEDULER_DB_PASSWORD: ${SCHEDULER_DB_PASSWORD:-}
+    volumes: *php-volumes
+    working_dir: /var/www/html
+    entrypoint: []
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

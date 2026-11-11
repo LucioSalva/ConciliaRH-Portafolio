@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 420 121" width="420" height="121" role="img" aria-label="ConciliaRH">
+  <rect x="0" y="12" width="96" height="96" rx="20" fill="#691C32"/>
+  <rect x="20" y="42" width="38" height="10" rx="5" fill="#ECD798"/>
+  <rect x="20" y="68" width="56" height="10" rx="5" fill="#BC955C"/>
+  <circle cx="70" cy="47" r="7" fill="none" stroke="#ECD798" stroke-width="4"/>
+  <text x="116" y="68" font-family="Montserrat, Arial, sans-serif" font-size="40" font-weight="700" fill="#691C32">ConciliaRH</text>
+  <text x="118" y="94" font-family="Montserrat, Arial, sans-serif" font-size="16" fill="#6b6b6b">Tesorería Municipal</text>
+</svg>

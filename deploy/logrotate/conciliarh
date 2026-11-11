@@ -1,0 +1,27 @@
+# ConciliaRH — /etc/logrotate.d/conciliarh (docs/DEPLOYMENT.md §13). Los logs enmascaran cuentas, RFC y CURP,
+# pero se tratan como confidenciales: cada proceso escribe sólo el suyo (0640), 30 días, comprimidos.
+# copytruncate: conserva dueño, modo e inodo (los servicios mantienen el archivo abierto; no se recrea con otro dueño).
+/var/lib/conciliarh/logs/*.log {
+    daily
+    rotate 30
+    missingok
+    notifempty
+    compress
+    delaycompress
+    dateext
+    copytruncate
+    su root conciliarh-data
+    sharedscripts
+}
+/var/log/apache2/conciliarh-*.log {
+    daily
+    rotate 30
+    missingok
+    notifempty
+    compress
+    delaycompress
+    sharedscripts
+    postrotate
+        systemctl reload apache2 >/dev/null 2>&1 || true
+    endscript
+}

@@ -1,0 +1,105 @@
+/* =====================================================================
+   ConciliaRH — Tablas, dinero y diferencias (docs/DESIGN_SYSTEM.md §11).
+   · Dinero SIEMPRE a la derecha con cifras tabulares.
+   · Diferencia = signo + icono + texto oculto para lectores; el color es apoyo.
+   · Encabezado fijo dentro del contenedor desplazable.
+   ===================================================================== */
+
+.table-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius); }
+.table-card__toolbar { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; justify-content: space-between; padding: var(--space-3) var(--space-4); border-bottom: 1px solid var(--color-border); }
+.table-card__title { font-size: var(--text-base); font-weight: var(--weight-bold); color: var(--gray-900); margin: 0; } /* h2/h3 de la tabla: uno por tarjeta */
+.table-card__hint { font-size: var(--text-xs); color: var(--color-text-muted); }
+.table-card > summary.table-card__toolbar { cursor: pointer; list-style-position: inside; }
+.table-card__footer { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4); border-top: 1px solid var(--color-border); font-size: var(--text-sm); color: var(--color-text-muted); }
+
+/* Contenedor: desplazamiento propio; contiene los .visually-hidden absolutos (si no, desbordan en móvil) */
+.table-responsive { border-radius: 0 0 var(--radius) var(--radius); position: relative; }
+.table-scroll { max-height: min(70vh, 900px); overflow: auto; position: relative; } /* sólo en listas largas: evita una barra por redondeo subpíxel */
+
+.table { --bs-table-bg: transparent; --bs-table-color: var(--color-text); margin: 0; font-size: var(--text-sm); }
+.table > thead th {
+  background: var(--gray-50); color: var(--gray-700);
+  font-size: var(--text-xs); font-weight: var(--weight-bold);
+  border-bottom: 1px solid var(--color-border-strong); white-space: nowrap;
+  padding: var(--space-2) var(--space-3); vertical-align: bottom;
+  position: sticky; top: 0; z-index: var(--z-sticky);
+}
+.table > tbody td, .table > tbody th { padding: var(--space-2) var(--space-3); vertical-align: middle; border-color: var(--gray-100); height: var(--row-h); }
+.table > tbody tr:last-child > * { border-bottom: 0; }
+.table-hover > tbody > tr:hover > * { --bs-table-bg-state: var(--gray-50); }
+.table > tfoot td, .table > tfoot th { font-weight: var(--weight-bold); border-top: 2px solid var(--color-border-strong); padding: var(--space-2) var(--space-3); }
+.table .num, .table .money { text-align: right; white-space: nowrap; }
+.table th.num { text-align: right; }
+.table-dense > thead > tr > *, .table-dense > tbody > tr > * { padding-left: var(--space-2); padding-right: var(--space-2); } /* tablas anchas de importes */
+.table-dense .cell-name { min-width: 10rem; }
+.table .cell-name { min-width: 14rem; max-width: 28rem; overflow-wrap: anywhere; }
+.table .cell-actions { text-align: right; white-space: nowrap; width: 1%; }
+.table-sticky-first th:first-child, .table-sticky-first td:first-child { position: sticky; left: 0; background: var(--color-surface); z-index: 1; }
+.table-sticky-first .row-attention > td:first-child { background: var(--color-row-attention); }
+.table-sticky-first thead th:first-child { background: var(--gray-50); z-index: calc(var(--z-sticky) + 1); }
+
+/* Filas que requieren atención: fondo arena + marca en el borde (forma, no sólo color) */
+.row-attention > td, .row-attention > th { background: var(--color-row-attention); }
+.row-attention > :first-child { box-shadow: inset var(--rule-width) 0 0 var(--color-rule); }
+.table-row--selected > td { background: var(--color-surface-accent); }
+.table-row--selected > td:first-child { box-shadow: inset var(--rule-width) 0 0 var(--color-rule); }
+
+.pagination { --bs-pagination-color: var(--wine-700); --bs-pagination-active-bg: var(--wine-700); --bs-pagination-active-border-color: var(--wine-700); --bs-pagination-hover-color: var(--wine-800); --bs-pagination-focus-box-shadow: var(--focus-ring); --bs-pagination-font-size: var(--text-sm); margin: 0; }
+
+/* Dinero y diferencias ----------------------------------------------- */
+.money { white-space: nowrap; }
+.money-neg { color: var(--color-money-under); }   /* importe negativo (money()); para diferencias, .diff */
+.diff { display: inline-flex; align-items: center; gap: .3rem; white-space: nowrap; font-weight: var(--weight-semibold); }
+.diff i { font-size: .8em; }
+.diff--under { color: var(--color-money-under); }   /* pagado < esperado: falta */
+.diff--over  { color: var(--color-money-over); }    /* pagado > esperado: sobra */
+.diff--even  { color: var(--color-money-even); font-weight: var(--weight-medium); }
+.diff--none  { color: var(--color-text-muted); font-weight: var(--weight-regular); }
+
+/* Estrategias responsive (docs/DESIGN_SYSTEM.md §11.1). Cada tabla declara UNA:
+   A · .table-stack          tarjetas en móvil; etiquetas tomadas del <th> por app.js (data-label), sin escribirlas a mano
+   B · col-hide-md/-sm       columnas prioritarias + botón de detalle en la fila
+   C · .table-responsive     desplazamiento horizontal controlado: región con foco, sombras de borde y primera columna fija
+   D · .table-sm             tabla compacta (pocas columnas cortas que caben en 390 px) */
+
+/* C · Región desplazable: app.js añade .is-scrollable (tabindex, role=region, aria-label) sólo si hay desborde.
+   Sombras en los bordes = "hay más a la derecha/izquierda" (background-attachment: local, sin JS de scroll). */
+.table-responsive.is-scrollable {
+  background:
+    linear-gradient(to right, var(--color-surface) 30%, transparent) left / 2rem 100% no-repeat local,
+    linear-gradient(to left, var(--color-surface) 30%, transparent) right / 2rem 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, rgba(46, 12, 22, .16), transparent) left / .75rem 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, rgba(46, 12, 22, .16), transparent) right / .75rem 100% no-repeat scroll;
+}
+.table-responsive.is-scrollable:focus-visible { outline-offset: -2px; }
+/* Con primera columna fija, sus celdas opacas tapan la sombra izquierda: la sombra va en su borde derecho */
+.table-responsive.is-scrollable .table-sticky-first tr > :first-child { box-shadow: 4px 0 6px -4px rgba(46, 12, 22, .2); }
+.table-responsive.is-scrollable .table-sticky-first .row-attention > :first-child { box-shadow: inset var(--rule-width) 0 0 var(--color-rule), 4px 0 6px -4px rgba(46, 12, 22, .2); }
+
+/* A · Móvil: la tabla se lee como tarjetas. Sólo cuando app.js ya puso las etiquetas ([data-stack-ready]);
+   sin JS queda como tabla con desplazamiento controlado (mejora progresiva). */
+@media (max-width: 575.98px) {
+  .table-stack[data-stack-ready] thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .table-stack[data-stack-ready], .table-stack[data-stack-ready] > tbody, .table-stack[data-stack-ready] > tbody > tr { display: block; width: 100%; }
+  .table-stack[data-stack-ready] > tbody > tr { border-bottom: 1px solid var(--color-border); padding: var(--space-2) var(--space-3); }
+  .table-stack[data-stack-ready] > tbody > tr.row-attention { box-shadow: inset var(--rule-width) 0 0 var(--color-rule); }
+  /* Celda = etiqueta flotante a la izquierda + valor a la derecha. flow-root (no flex): el texto y los elementos
+     del valor siguen en línea aunque la celda mezcle texto suelto, <small> y distintivos. */
+  .table-stack[data-stack-ready] > tbody > tr > td { display: flow-root; width: 100%; height: auto; border: 0; padding: var(--space-1) 0; text-align: right; overflow-wrap: anywhere; }
+  .table-stack[data-stack-ready] > tbody > tr > td::before { content: attr(data-label); float: left; max-width: 45%; margin-right: var(--space-3); color: var(--color-text-muted); font-weight: var(--weight-semibold); text-align: left; }
+  .table-stack[data-stack-ready] > tbody > tr > td[data-label=""]::before { content: none; }
+  .table-stack[data-stack-ready] > tbody > tr > td:first-child { font-weight: var(--weight-semibold); }
+  .table-stack[data-stack-ready] > tbody > tr > td.cell-actions { padding-top: var(--space-2); white-space: normal; }
+  .table-stack[data-stack-ready] > tbody > tr > td.cell-actions::before { content: none; }
+  .table-stack[data-stack-ready] .row-attention > :first-child { box-shadow: none; }
+  .table-stack[data-stack-ready] .cell-name { min-width: 0; max-width: none; }
+  .table-stack[data-stack-ready].table-sticky-first td:first-child { position: static; }
+  .table-stack[data-stack-ready] > tbody > tr > td.col-hide-sm, .table-stack[data-stack-ready] > tbody > tr > td.col-hide-md, .table-stack[data-stack-ready] > tbody > tr > td.col-hide-lg { display: none; } /* resumen: sólo lo esencial */
+  .table-scroll { max-height: none; }
+}
+
+/* FASE 8 · Revisión masiva: selección siempre visible al recorrer cientos de filas */
+.bulk-toolbar { position: sticky; top: var(--header-height); z-index: calc(var(--z-sticky) + 1); background: var(--color-surface); border-radius: var(--radius) var(--radius) 0 0; }
+.bulk-table__check { width: 1%; }
+.bulk-table .evidence-list { font-size: var(--text-xs); }
+@media (max-width: 991.98px) { .bulk-toolbar { position: static; } }

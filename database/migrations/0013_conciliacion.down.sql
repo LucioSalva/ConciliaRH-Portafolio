@@ -1,0 +1,26 @@
+-- Revierte 0013 (sólo desarrollo/pruebas).
+DROP TRIGGER IF EXISTS procesos_a_conciliacion ON procesos;
+DROP FUNCTION IF EXISTS fn_proceso_a_conciliacion();
+DROP VIEW IF EXISTS v_conciliaciones_vigentes;
+DROP FUNCTION IF EXISTS fn_solicitar_conciliacion(bigint, bigint, text);
+DROP FUNCTION IF EXISTS fn_actor_tiene_permiso(text);
+DROP TABLE IF EXISTS relaciones_poliza_dispersion;
+DROP TABLE IF EXISTS conciliacion_incidencias_historial;
+DROP TABLE IF EXISTS conciliacion_incidencias;
+DROP TABLE IF EXISTS conciliacion_fuentes;
+DROP TABLE IF EXISTS conciliacion_pensiones;
+DROP TABLE IF EXISTS conciliacion_empleados;
+DROP TABLE IF EXISTS conciliacion_controles;
+DROP TABLE IF EXISTS conciliacion_archivos;
+DROP TABLE IF EXISTS conciliaciones;
+DROP FUNCTION IF EXISTS fn_conciliacion_incidencia_historial();
+DROP FUNCTION IF EXISTS fn_conciliacion_incidencia_reglas();
+DROP FUNCTION IF EXISTS fn_relacion_poliza_reglas();
+DROP FUNCTION IF EXISTS fn_conciliacion_resultado_escribible();
+DROP FUNCTION IF EXISTS fn_conciliacion_reglas();
+DELETE FROM proceso_eventos WHERE proceso_id IN (SELECT id FROM procesos WHERE tipo = 'CONCILIAR_LOTE');
+UPDATE workers SET proceso_actual_id = NULL WHERE proceso_actual_id IN (SELECT id FROM procesos WHERE tipo = 'CONCILIAR_LOTE');
+DELETE FROM procesos WHERE tipo = 'CONCILIAR_LOTE';
+DELETE FROM rol_permiso WHERE permiso_id IN (SELECT id FROM permisos WHERE modulo IN ('conciliaciones', 'incidencias'));
+DELETE FROM permisos WHERE modulo IN ('conciliaciones', 'incidencias');
+DELETE FROM configuracion WHERE clave IN ('conciliacion.timeout_segundos', 'conciliacion.cuenta_bancos');

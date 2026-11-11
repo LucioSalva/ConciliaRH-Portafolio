@@ -1,0 +1,76 @@
+#!/usr/bin/env bash
+# ConciliaRH — ejecuta un comando de administración con el USUARIO y el ENTORNO correctos (docs/OPERATIONS_RUNBOOK.md §2).
+#
+#   sudo conciliarh-run <comando> [argumentos…]
+#
+# Los secretos nunca pasan por la línea de comandos: systemd-run lee los archivos de entorno (como root) y ejecuta el
+# programa con el usuario de servicio. Sólo se admiten los comandos de la lista; los argumentos se pasan tal cual, como
+# arreglo (sin eval ni interpretación de shell).
+set -euo pipefail
+# Ruta fija: ningún programa (id, systemd-run) se resuelve por un PATH heredado de quien invoca
+PATH=/usr/sbin:/usr/bin:/sbin:/bin; export PATH
+APP="${CONCILIARH_HOME:-/opt/conciliarh/current}"
+ETC=/etc/conciliarh
+[ "$(id -u)" = 0 ] || { echo "Ejecute con sudo." >&2; exit 1; }
+# El código que se ejecuta con las credenciales del propietario debe ser de root y no escribible por nadie más:
+# CONCILIARH_HOME (pruebas, otra versión instalada) nunca puede apuntar a un directorio controlado por otro usuario.
+APP="$(readlink -f -- "$APP")" || { echo "No existe la instalación." >&2; exit 1; }
+for d in "$APP" "$APP/bin" "$APP/app" "$APP/config" "$APP/vendor"; do
+  [ -d "$d" ] || { echo "Instalación incompleta: falta $d." >&2; exit 1; }
+done
+[ "$(stat -c %u "$APP")" = 0 ] && [ -z "$(find "$APP" -maxdepth 0 -perm /022)" ] \
+  && [ -z "$(find "$APP/bin" "$APP/app" "$APP/config" "$APP/vendor" ! -type l \( ! -user root -o -perm /022 \) -print -quit)" ] \
+  || { echo "Instalación no confiable: el código de $APP debe ser de root y sin escritura para grupo ni otros." >&2; exit 1; }
+[ $# -ge 1 ] || { sed -n '3,8p' "$0"; echo "Comandos: preflight postdeploy migrate create-god god-recovery audit-anchor maintenance scheduler storage-check rotate-account-key rotate-account-hmac rotate-report-key worker-reap"; exit 1; }
+cmd="$1"; shift
+
+# comando → usuario, archivos de entorno y programa
+case "$cmd" in
+  # Sin credenciales del propietario: con el usuario del servicio que corresponde
+  preflight)           user=conciliarh-web;    envs=(web);                prog=(/usr/bin/php "$APP/bin/preflight.php") ;;
+  postdeploy)          user=conciliarh-web;    envs=(web);                prog=(/usr/bin/php "$APP/bin/preflight.php" --post-deploy) ;;
+  storage-check)       user=conciliarh-web;    envs=(web);                prog=(/usr/bin/php "$APP/bin/verificar-almacenamiento.php") ;;
+  # Ancla de la auditoría: sólo lectura, sin datos personales, no envía nada (se sella fuera del servidor)
+  audit-anchor)        user=conciliarh-web;    envs=(web);                prog=(/usr/bin/php "$APP/bin/audit-anchor.php") ;;
+  scheduler)           user=conciliarh-sched;  envs=(scheduler);          prog=(/usr/bin/php "$APP/bin/scheduler.php") ;;
+  worker-reap)         user=conciliarh-worker; envs=(worker);             prog=(/usr/bin/php "$APP/bin/worker.php" reap) ;;
+  # Con credenciales del PROPIETARIO: usuario propio (conciliarh-admin); ningún servicio comparte su UID ni ve su /proc
+  migrate)             user=conciliarh-admin;  envs=(web cli);            prog=(/usr/bin/php "$APP/bin/migrate.php") ;;
+  create-god)          user=conciliarh-admin;  envs=(web cli);            prog=(/usr/bin/php "$APP/bin/create-god.php") ;;
+  # Recuperación de EMERGENCIA de la cuenta GOD (docs/BREAK_GLASS_RECOVERY.md): interactiva, auditada, sólo esa cuenta
+  god-recovery)        user=conciliarh-admin;  envs=(web cli);            prog=(/usr/bin/php "$APP/bin/god-recovery.php") ;;
+  maintenance)         user=conciliarh-admin;  envs=(web);                prog=(/usr/bin/php "$APP/bin/maintenance.php") ;;
+  rotate-account-key)  user=conciliarh-admin;  envs=(worker web cli);     prog=(/usr/bin/php "$APP/bin/rotate-account-key.php") ;;
+  rotate-account-hmac) user=conciliarh-admin;  envs=(worker web cli);     prog=(/usr/bin/php "$APP/bin/rotate-account-hmac.php") ;;
+  # Reescribe archivos de reportes (dueño: conciliarh-sched): DETENGA conciliarh-scheduler.timer mientras corre
+  rotate-report-key)   user=conciliarh-sched;  envs=(scheduler web cli);  prog=(/usr/bin/php "$APP/bin/rotate-report-key.php") ;;
+  *) echo "Comando no admitido: $cmd" >&2; exit 1 ;;
+esac
+
+# Los comandos que piden una contraseña la leen de la terminal (o de la entrada estándar), NUNCA de la línea de comandos:
+# lo que se escribe como argumento queda en el journal de systemd y en el historial. Se rechaza ANTES de lanzar nada.
+case "$cmd" in
+  god-recovery)
+    for a in "$@"; do
+      [[ "$a" =~ ^(status|unlock|reactivate|revoke-sessions|reset-password|repair)$ || "$a" =~ ^--usuario=[a-z0-9._-]{3,50}$ || "$a" == --motivo=* ]] \
+        || { echo "Argumento no admitido para god-recovery. La contraseña se escribe en la terminal, nunca como argumento." >&2; exit 1; }
+    done ;;
+  create-god)
+    for a in "$@"; do
+      [[ "$a" == --username=* || "$a" == --nombre=* || "$a" == --password-stdin ]] \
+        || { echo "Argumento no admitido para create-god. La contraseña nunca se pasa como argumento." >&2; exit 1; }
+    done ;;
+esac
+
+props=(--uid="$user" --gid="$user" -p SupplementaryGroups=conciliarh-data -p WorkingDirectory="$APP" -p UMask=0027
+       -p NoNewPrivileges=yes -p PrivateTmp=yes -p ProtectProc=invisible)
+# Quién invocó sudo (para la auditoría de create-god y god-recovery). Sólo se pasa si tiene forma de nombre de usuario.
+oper="${SUDO_USER:-root}"
+[[ "$oper" =~ ^[A-Za-z_][A-Za-z0-9_.-]{0,31}\$?$ ]] && props+=(-E CONCILIARH_OPERADOR="$oper")
+for e in "${envs[@]}"; do
+  [ -r "$ETC/$e.env" ] || { echo "Falta $ETC/$e.env" >&2; exit 1; }
+  props+=(-p EnvironmentFile="$ETC/$e.env")
+done
+# --pty si hay terminal (create-god pide la contraseña sin eco); --pipe en scripts. --wait devuelve el código de salida.
+if [ -t 0 ] && [ -t 1 ]; then tty=(--pty); else tty=(--pipe); fi
+exec systemd-run --quiet --collect --wait "${tty[@]}" "${props[@]}" -- "${prog[@]}" "$@"

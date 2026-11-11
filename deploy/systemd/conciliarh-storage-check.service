@@ -1,0 +1,17 @@
+# ConciliaRH — revisión diaria de originales (SHA-256) y huérfanos (docs/IMPORTS.md). Código ≠ 0 → OnFailure/alerta.
+[Unit]
+Description=ConciliaRH verificación de almacenamiento
+
+[Service]
+Type=oneshot
+User=conciliarh-web
+Group=conciliarh-web
+SupplementaryGroups=conciliarh-data
+EnvironmentFile=/etc/conciliarh/web.env
+WorkingDirectory=/opt/conciliarh/current
+ExecStart=/usr/bin/php /opt/conciliarh/current/bin/verificar-almacenamiento.php --hash
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/conciliarh/logs

@@ -1,0 +1,51 @@
+/* =====================================================================
+   ConciliaRH — Base: elementos HTML, tipografía y accesibilidad global.
+   Orden de carga: bootstrap → tokens → base → layout → components → tables
+                   → forms → dashboard → responsive (→ login en su pantalla)
+   ===================================================================== */
+
+html { font-size: 15px; }
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading);
+  color: var(--color-text);
+  background: var(--color-bg);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Títulos: peso y tamaño marcan la jerarquía; nunca mayúsculas espaciadas */
+h1, h2, h3, h4, h5, h6 { font-weight: var(--weight-bold); color: var(--gray-900); letter-spacing: -.01em; line-height: var(--leading-tight); }
+h1, .h1 { font-size: var(--text-xl); }
+h2, .h2 { font-size: var(--text-lg); }
+h3, .h3, .h5 { font-size: var(--text-md); }
+h4, .h4, .h6 { font-size: var(--text-base); }
+
+h1, h2, h3 { text-wrap: balance; }
+p { text-wrap: pretty; }
+[id] { scroll-margin-top: calc(var(--header-height) + var(--space-4)); } /* anclas no quedan bajo la barra fija */
+
+a { color: var(--color-primary); text-underline-offset: .18em; }
+a, button, input, select, textarea, label, summary { touch-action: manipulation; -webkit-tap-highlight-color: rgba(105, 28, 50, .12); }
+a:hover { color: var(--color-primary-hover); }
+
+/* Foco visible y consistente en TODO lo interactivo (WCAG 2.4.7) */
+:focus-visible { outline: 2px solid var(--wine-700); outline-offset: 2px; box-shadow: var(--focus-ring); }
+.visually-hidden-focusable:focus {
+  position: fixed; top: var(--space-2); left: var(--space-2); z-index: var(--z-skip);
+  background: var(--color-surface); padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm); box-shadow: var(--shadow);
+}
+
+code, .font-mono { font-family: var(--font-mono); font-size: .9em; }
+code { color: var(--wine-600); }
+::selection { background: var(--sand-500); color: var(--wine-900); }
+
+/* Cifras: todo número de dinero o conteo se alinea en columnas */
+.num, .money, .diff, time { font-feature-settings: var(--font-num); font-variant-numeric: tabular-nums lining-nums; }
+
+/* Reducción de movimiento: respeto global */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+}

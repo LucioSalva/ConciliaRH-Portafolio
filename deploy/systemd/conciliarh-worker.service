@@ -1,0 +1,49 @@
+# ConciliaRH — procesador en segundo plano, PHP CLI (docs/DEPLOYMENT.md §9). /etc/systemd/system/conciliarh-worker.service
+[Unit]
+Description=ConciliaRH worker (cola de análisis, normalización y conciliación)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=conciliarh-worker
+Group=conciliarh-worker
+SupplementaryGroups=conciliarh-data
+# Sólo su archivo: credenciales del rol conciliarh_worker y llaves de cuentas/HMAC. Nunca web.env ni REPORT_ENC_KEYS.
+EnvironmentFile=/etc/conciliarh/worker.env
+WorkingDirectory=/opt/conciliarh/current
+ExecStart=/usr/bin/php /opt/conciliarh/current/bin/worker.php worker
+Restart=always
+RestartSec=5
+# Configuración incompleta (código 2): no reintentar sin fin; queda «failed» para que el monitoreo lo vea
+RestartPreventExitStatus=2
+# Detenerse ordenadamente: termina el trabajo en curso (SIGTERM) y libera su lease
+KillSignal=SIGTERM
+TimeoutStopSec=120
+UMask=0027
+# Endurecimiento: libros no confiables; el código y los originales son de sólo lectura para el worker
+NoNewPrivileges=true
+# No ve procesos de otros usuarios (p. ej. el entorno de un comando de administración)
+ProtectProc=invisible
+ProcSubset=pid
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+RestrictNamespaces=true
+SystemCallArchitectures=native
+ReadOnlyPaths=/var/lib/conciliarh/imports
+ReadWritePaths=/var/lib/conciliarh/logs /var/lib/conciliarh/trabajo
+# Un libro patológico no tumba al servidor (el motor también aplica sus propios topes)
+MemoryMax=2G
+CPUQuota=200%
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

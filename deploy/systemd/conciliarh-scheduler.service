@@ -1,0 +1,29 @@
+# ConciliaRH — scheduler de reportes programados y mantenimiento de cada ciclo (docs/SCHEDULED_REPORTS.md §6)
+[Unit]
+Description=ConciliaRH scheduler (reportes programados, expiración de solicitudes, retención)
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+User=conciliarh-sched
+Group=conciliarh-sched
+SupplementaryGroups=conciliarh-data
+# Credenciales del rol conciliarh_scheduler y REPORT_ENC_KEYS. Sin llaves de cuentas ni HMAC.
+EnvironmentFile=/etc/conciliarh/scheduler.env
+WorkingDirectory=/opt/conciliarh/current
+ExecStart=/usr/bin/php /opt/conciliarh/current/bin/scheduler.php --run --max-jobs=50
+TimeoutStartSec=30min
+UMask=0027
+NoNewPrivileges=true
+ProtectProc=invisible
+ProcSubset=pid
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+ReadWritePaths=/var/lib/conciliarh/reportes /var/lib/conciliarh/trabajo /var/lib/conciliarh/logs
+MemoryMax=1G

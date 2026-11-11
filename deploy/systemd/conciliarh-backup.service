@@ -1,0 +1,21 @@
+# ConciliaRH — respaldo diario cifrado y firmado (docs/BACKUP_RESTORE.md). Usuario propio con sólo lo necesario.
+[Unit]
+Description=ConciliaRH respaldo
+After=postgresql.service
+
+[Service]
+Type=oneshot
+User=conciliarh-backup
+Group=conciliarh-backup
+SupplementaryGroups=conciliarh-data
+# PGHOST PGDATABASE PGUSER=conciliarh_backup (sólo lectura) PGPASSFILE, CONCILIARH_STORAGE, BACKUP_DIR, BACKUP_GPG_*
+EnvironmentFile=/etc/conciliarh/backup.env
+Environment=GNUPGHOME=/var/lib/conciliarh-backup/gnupg
+ExecStart=/opt/conciliarh/current/scripts/backup.sh
+TimeoutStartSec=6h
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+PrivateTmp=true
+ReadOnlyPaths=/var/lib/conciliarh
+ReadWritePaths=/var/backups/conciliarh /var/lib/conciliarh-backup

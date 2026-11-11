@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96" role="img" aria-label="ConciliaRH">
+  <rect width="96" height="96" rx="20" fill="#691C32"/>
+  <rect x="20" y="30" width="38" height="10" rx="5" fill="#ECD798"/>
+  <rect x="20" y="56" width="56" height="10" rx="5" fill="#BC955C"/>
+  <circle cx="70" cy="35" r="7" fill="none" stroke="#ECD798" stroke-width="4"/>
+</svg>

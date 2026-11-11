@@ -1,0 +1,84 @@
+/* =====================================================================
+   ConciliaRH — Adaptación por anchura (docs/DESIGN_SYSTEM.md §18).
+   Validado en 1920 · 1440 · 1366 · 1024 · 768 · 390 px.
+   Móvil: resumen primero, tablas como tarjetas (.table-stack), detalle desplegable.
+   ===================================================================== */
+
+/* Columnas prescindibles en escritorio mediano (p. ej. «Otros» bancos: suele ser «—» y está en el detalle y en el total) */
+@media (max-width: 1399.98px) {
+  .col-hide-lg { display: none; }
+}
+
+@media (max-width: 1199.98px) {
+  .content { padding: var(--space-5) var(--space-6); }
+  .footer { padding: var(--space-3) var(--space-6); }
+}
+
+/* Tableta y menor: la navegación se vuelve un panel deslizable */
+@media (max-width: 991.98px) {
+  .sidebar { position: fixed; left: 0; top: 0; transform: translateX(-100%); transition: transform var(--dur-slow) var(--ease), visibility 0s linear var(--dur-slow); box-shadow: var(--shadow-lg); visibility: hidden; } /* oculto = fuera del orden de tabulación */
+  .sidebar.is-open { transform: none; visibility: visible; transition: transform var(--dur-slow) var(--ease); }
+  .sidebar-backdrop { position: fixed; inset: 0; background: rgba(46, 12, 22, .45); z-index: var(--z-backdrop); }
+  .topbar .topbar__toggle { display: inline-flex; }
+  .topbar { padding: 0 var(--space-4); gap: var(--space-3); }
+  .content { padding: var(--space-4); }
+  .footer { padding: var(--space-3) var(--space-4); }
+  .cuadre { padding: var(--space-4); }
+}
+
+@media (max-width: 767.98px) {
+  .col-hide-md { display: none; }
+  /* Etiqueta + importe en una línea y la regla debajo (dense rellena el hueco de la derecha) */
+  .cuadre__rows { grid-template-columns: minmax(0, 1fr) max-content; grid-auto-flow: row dense; row-gap: var(--space-2); }
+  .cuadre__label { grid-column: 1; }
+  .cuadre__amount { grid-column: 2; }
+  .cuadre__track { grid-column: 1 / -1; margin-bottom: var(--space-2); }
+  .cuadre__diff { font-size: var(--text-xl); }
+  .figures { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .figure:nth-child(odd) { border-left: 0; }
+  .figure:nth-child(n+3) { border-top: 1px solid var(--color-border); }
+  .compare-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 575.98px) {
+  html { font-size: 14px; }
+  .user-menu__text { display: none; }
+  .topbar__env { display: none; }
+  .page-header { margin-bottom: var(--space-4); }
+  .page-header__actions { width: 100%; }
+  .page-header__actions > .btn-action { flex: 1 1 auto; }
+  .search { max-width: none; min-width: 0; width: 100%; }
+  /* Segmentado en móvil: 2×2 sin «glider» (el deslizador asume una sola fila); la opción activa se marca con fondo y borde */
+  .segmented { width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px; }
+  .segmented label { padding: 0 var(--space-1); }
+  .segmented__glider { display: none; }
+  .segmented input:checked + label { background: var(--white); box-shadow: inset 0 0 0 1px var(--color-border-strong); }
+  .dl-grid { grid-template-columns: 1fr; }
+  .dl-grid dt { margin-top: var(--space-2); }
+  .dl-grid.dl-grid--num { grid-template-columns: minmax(0, 1fr) max-content; } /* importes: etiqueta e importe en la misma línea */
+  .dl-grid.dl-grid--num dt { margin-top: 0; }
+  .col-hide-sm { display: none; }
+  .cuadre__amount { font-size: var(--text-md); }
+  .figure__value { font-size: var(--text-base); white-space: normal; overflow-wrap: anywhere; }
+  .table-card__toolbar, .table-card__footer { padding: var(--space-3); }
+  .toast-stack { left: var(--space-3); right: var(--space-3); max-width: none; }
+}
+
+/* Impresión: sin navegación ni controles */
+@media print {
+  .sidebar, .topbar, .footer, .page-header__actions, .toast-stack, .btn-action, .btn { display: none !important; }
+  .content { padding: 0; max-width: none; }
+  .card, .table-card, .cuadre, .figures { border-color: var(--gray-400); }
+}
+
+/* FASE 8 */
+@media (max-width: 767.98px) {
+  .pipeline { grid-template-columns: 1fr; gap: var(--space-2); }
+  .pipeline__step { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: var(--space-2); text-align: left; align-items: center; padding: 0; }
+  .pipeline__step::before { margin: 0; }
+  .pipeline__step::after { display: none; }
+  .notif-item { grid-template-columns: auto minmax(0, 1fr); }
+  .notif-item__actions { grid-column: 1 / -1; justify-content: flex-end; }
+  .decision-bar { position: static; }
+  .decision-bar > form, .decision-bar > form .btn-action { flex: 1 1 auto; width: 100%; }
+}

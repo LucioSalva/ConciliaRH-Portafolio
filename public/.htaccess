@@ -1,0 +1,31 @@
+# ConciliaRH — reglas para Apache (desarrollo y hosting de producción).
+Options -Indexes -MultiViews
+ServerSignature Off
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # Bloquear archivos ocultos (.env, .git, etc.) si existieran en public/
+    RewriteCond %{REQUEST_URI} !^/\.well-known/
+    RewriteRule (^|/)\. - [F,L]
+    # Archivos y directorios reales (assets) se sirven directamente
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+<IfModule mod_headers.c>
+    # Archivos estáticos (las respuestas dinámicas reciben sus cabeceras desde la aplicación)
+    <FilesMatch "\.(css|js|woff2|png|webp|jpg|svg|ico)$">
+        Header set X-Content-Type-Options "nosniff"
+        Header set Cache-Control "public, max-age=604800"
+    </FilesMatch>
+</IfModule>
+
+# Nunca ejecutar PHP distinto del front controller
+<FilesMatch "\.php$">
+    Require all denied
+</FilesMatch>
+<Files "index.php">
+    Require all granted
+</Files>

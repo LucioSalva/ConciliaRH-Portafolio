@@ -1,0 +1,130 @@
+# ---------------------------------------------------------------
+# ConciliaRH — reglas de exclusión
+# Principio: NUNCA versionar datos reales de nómina, secretos ni
+# artefactos generados.
+# ---------------------------------------------------------------
+
+# Configuración y secretos
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+config/local.php
+
+# Dependencias
+/vendor/
+node_modules/
+
+# Almacenamiento de la aplicación (fuera del web root)
+/storage/**
+!/storage/**/
+!/storage/**/.gitkeep
+
+# Cachés, logs y temporales
+*.log
+logs/
+cache/
+# …pero se conserva la estructura vacía de storage/
+!/storage/logs/
+!/storage/cache/
+/storage/logs/*
+/storage/cache/*
+!/storage/logs/.gitkeep
+!/storage/cache/.gitkeep
+tmp/
+.phpunit.cache/
+.phpunit.result.cache
+.php-cs-fixer.cache
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Python (herramientas de desarrollo)
+.venv/
+venv/
+env/
+# Plantillas de entorno de producción (sin valores): sí se versionan
+!/deploy/env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.ipynb_checkpoints/
+
+# Datos reales: cualquier hoja de cálculo o exportación queda fuera
+# por defecto. Los fixtures ficticios se generan por código en los tests
+# (php tests/fixtures/generate.php → tests/fixtures/excel/) y NO se versionan.
+*.xls
+*.xlsx
+*.xlsm
+*.xlsb
+*.ods
+*.csv
+*.dbf
+*.zip
+
+# Carpeta local de archivos reales de nómina (nunca se versiona)
+/ArchivosOriginales/
+
+# Volcados de base de datos
+*.sql.gz
+*.dump
+*.backup
+dumps/
+backups/
+
+# Paquetes de despliegue generados
+/dist/
+/build/
+
+# Notebooks con salidas (sólo investigación; limpiar antes de versionar)
+notebooks/**/*.ipynb
+!notebooks/README.md
+
+# IDE / SO
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+
+# Credenciales de servidores de PRUEBA: nunca se versionan
+**/god-pass
+**/*-pass
+
+# Evidencia personal, transcripciones y llaves de firma: SIEMPRE fuera del repositorio
+ConciliaRH-evidencia/
+*.bundle
+*.gpg
+*.sig
+*.tsq
+*.tsr
+*.jsonl
+id_rsa*
+id_ed25519*
+*_ed25519
+*_ed25519.pub
+
+# Inventarios de servidores reales (IP, puertos, firewall): se entregan fuera del repositorio
+conciliarh-inventario-*.txt
+
+# Cuentas y escenarios de demostración generados (contraseñas aleatorias)
+cuentas.json
+escenario.json
+.venv-manuales/
+*.tmp.html
+/tests/fixtures/excel/
+
+# Herramientas de asistentes / editores (no se versionan)
+.claude/
+.agents/
+CLAUDE.md
+AGENTS.md
+*.sql.bak
+*.bak
